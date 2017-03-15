@@ -39,7 +39,7 @@ class Updateable
   end
 
   def clamp_quality(x)
-    @item.quality = [[x, @max_quality].min, @min_quality].max
+    @item.quality = [@min_quality, x, @max_quality].sort[1]
   end
 end
 
