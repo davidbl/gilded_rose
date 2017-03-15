@@ -1,0 +1,12 @@
+version: "2"
+services:
+  app:
+    build: .
+    working_dir: /gilded_rose
+    command: bash
+    volumes:
+      - .:/gilded_rose
+      - ./bundle:/bundle
+
+
+

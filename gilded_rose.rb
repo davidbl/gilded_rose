@@ -1,48 +1,94 @@
-def update_quality(items)
-  items.each do |item|
-    if item.name != 'Aged Brie' && item.name != 'Backstage passes to a TAFKAL80ETC concert'
-      if item.quality > 0
-        if item.name != 'Sulfuras, Hand of Ragnaros'
-          item.quality -= 1
-        end
-      end
+BACKSTAGE_PASS = 'Backstage passes to a TAFKAL80ETC concert'
+AGED_BRIE = 'Aged Brie'
+SULFURAS = 'Sulfuras, Hand of Ragnaros'
+CONJURED_MANA_CAKE = "Conjured Mana Cake"
+
+class Updateable
+  MAX_QUALITY = 50
+  MIN_QUALITY = 0
+  attr_accessor :item
+  def self.new_from_item(item)
+    self.new item
+  end
+
+  def initialize(item)
+    @item = item
+  end
+
+  def sell_in
+    @item.sell_in
+  end
+
+  def update
+  end
+
+  def decrement_quality(step=1)
+    @item.quality = [MIN_QUALITY, @item.quality - step].max
+  end
+
+  def increment_quality(step=1)
+    @item.quality = [MAX_QUALITY, @item.quality + step].min
+  end
+
+  def zero_quality
+    @item.quality = 0
+  end
+
+  def decrement_sell_in(&block)
+    @item.sell_in -= 1
+    block.call if expired? && block_given?
+  end
+
+  def expired?
+    @item.sell_in < 0
+  end
+end
+
+class Normal < Updateable
+  def update
+    decrement_quality
+    decrement_sell_in {decrement_quality}
+  end
+end
+
+class AgedBrie < Updateable
+  def update
+    increment_quality
+    decrement_sell_in {increment_quality}
+  end
+end
+
+class BackstagePass < Updateable
+  def update
+    case self.sell_in
+    when 1..5
+      increment_quality(3)
+    when 6..10
+      increment_quality(2)
     else
-      if item.quality < 50
-        item.quality += 1
-        if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-          if item.sell_in < 11
-            if item.quality < 50
-              item.quality += 1
-            end
-          end
-          if item.sell_in < 6
-            if item.quality < 50
-              item.quality += 1
-            end
-          end
-        end
-      end
+      increment_quality(1)
     end
-    if item.name != 'Sulfuras, Hand of Ragnaros'
-      item.sell_in -= 1
-    end
-    if item.sell_in < 0
-      if item.name != "Aged Brie"
-        if item.name != 'Backstage passes to a TAFKAL80ETC concert'
-          if item.quality > 0
-            if item.name != 'Sulfuras, Hand of Ragnaros'
-              item.quality -= 1
-            end
-          end
-        else
-          item.quality = item.quality - item.quality
-        end
-      else
-        if item.quality < 50
-          item.quality += 1
-        end
-      end
-    end
+    decrement_sell_in {zero_quality}
+  end
+end
+
+class Conjured < Updateable
+  def update
+    decrement_quality(2)
+    decrement_sell_in{decrement_quality(2)}
+  end
+end
+
+def update_quality(items)
+  klass_map = {
+    AGED_BRIE => AgedBrie,
+    BACKSTAGE_PASS => BackstagePass,
+    CONJURED_MANA_CAKE => Conjured,
+    SULFURAS => Updateable
+  }
+  klass_map.default = Normal
+  items.each do |item|
+    klass_map[item.name].new_from_item(item).update
   end
 end
 
