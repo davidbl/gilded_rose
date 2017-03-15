@@ -3,7 +3,7 @@ AGED_BRIE = 'Aged Brie'
 SULFURAS = 'Sulfuras, Hand of Ragnaros'
 CONJURED_MANA_CAKE = "Conjured Mana Cake"
 
-class Updateable
+class PersishableItem
   def initialize(item, max_quality = 50, min_quality=0)
     @max_quality = max_quality
     @min_quality = min_quality
@@ -43,26 +43,26 @@ class Updateable
   end
 end
 
-class Normal < Updateable
+class NormalItem < PersishableItem
   def update
     super(-1)
   end
 end
 
-class Legendary < Updateable
+class LegendaryItem < PersishableItem
   def update
     @max_quality = 80
     super(0,0)
   end
 end
 
-class AgedBrie < Updateable
+class AgedBrie < PersishableItem
   def update
     super(1)
   end
 end
 
-class BackstagePass < Updateable
+class BackstagePass < PersishableItem
   def update
     case sell_in
     when 1..5
@@ -76,7 +76,7 @@ class BackstagePass < Updateable
   end
 end
 
-class Conjured < Updateable
+class ConjuredItem < PersishableItem
   def update
     super(-2)
   end
@@ -86,10 +86,10 @@ def update_quality(items)
   klass_map = {
     AGED_BRIE => AgedBrie,
     BACKSTAGE_PASS => BackstagePass,
-    CONJURED_MANA_CAKE => Conjured,
-    SULFURAS => Legendary
+    CONJURED_MANA_CAKE => ConjuredItem,
+    SULFURAS => LegendaryItem
   }
-  klass_map.default = Normal
+  klass_map.default = NormalItem
   items.each do |item|
     klass_map[item.name].new(item).update
   end
