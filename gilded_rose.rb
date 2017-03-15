@@ -6,28 +6,24 @@ CONJURED_MANA_CAKE = "Conjured Mana Cake"
 class Updateable
   MAX_QUALITY = 50
   MIN_QUALITY = 0
-  attr_accessor :item
-  def self.new_from_item(item)
-    self.new item
-  end
 
   def initialize(item)
     @item = item
   end
 
+  def update(step)
+    adjust_quality(step)
+    decrement_sell_in {adjust_quality(step)}
+  end
+
+  private
+
   def sell_in
     @item.sell_in
   end
 
-  def update
-  end
-
-  def decrement_quality(step=1)
-    @item.quality = [MIN_QUALITY, @item.quality - step].max
-  end
-
-  def increment_quality(step=1)
-    @item.quality = [MAX_QUALITY, @item.quality + step].min
+  def adjust_quality(step)
+    clamp_quality(@item.quality + step)
   end
 
   def zero_quality
@@ -36,37 +32,45 @@ class Updateable
 
   def decrement_sell_in(&block)
     @item.sell_in -= 1
-    block.call if expired? && block_given?
+    block.call if expired?
   end
 
   def expired?
     @item.sell_in < 0
   end
+
+  def clamp_quality(x)
+    @item.quality = [[x, MAX_QUALITY].min, MIN_QUALITY].max
+  end
 end
 
 class Normal < Updateable
   def update
-    decrement_quality
-    decrement_sell_in {decrement_quality}
+    super(-1)
+  end
+end
+
+class Legendary < Updateable
+  def update
+    #noop
   end
 end
 
 class AgedBrie < Updateable
   def update
-    increment_quality
-    decrement_sell_in {increment_quality}
+    super(1)
   end
 end
 
 class BackstagePass < Updateable
   def update
-    case self.sell_in
+    case sell_in
     when 1..5
-      increment_quality(3)
+      adjust_quality(3)
     when 6..10
-      increment_quality(2)
+      adjust_quality(2)
     else
-      increment_quality(1)
+      adjust_quality(1)
     end
     decrement_sell_in {zero_quality}
   end
@@ -74,8 +78,7 @@ end
 
 class Conjured < Updateable
   def update
-    decrement_quality(2)
-    decrement_sell_in{decrement_quality(2)}
+    super(-2)
   end
 end
 
@@ -84,11 +87,11 @@ def update_quality(items)
     AGED_BRIE => AgedBrie,
     BACKSTAGE_PASS => BackstagePass,
     CONJURED_MANA_CAKE => Conjured,
-    SULFURAS => Updateable
+    SULFURAS => Legendary
   }
   klass_map.default = Normal
   items.each do |item|
-    klass_map[item.name].new_from_item(item).update
+    klass_map[item.name].new(item).update
   end
 end
 
