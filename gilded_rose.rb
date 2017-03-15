@@ -4,16 +4,15 @@ SULFURAS = 'Sulfuras, Hand of Ragnaros'
 CONJURED_MANA_CAKE = "Conjured Mana Cake"
 
 class Updateable
-  MAX_QUALITY = 50
-  MIN_QUALITY = 0
-
-  def initialize(item)
+  def initialize(item, max_quality = 50, min_quality=0)
+    @max_quality = max_quality
+    @min_quality = min_quality
     @item = item
   end
 
-  def update(step)
-    adjust_quality(step)
-    decrement_sell_in {adjust_quality(step)}
+  def update(quality_step, sell_in_step = -1)
+    adjust_quality(quality_step)
+    adjust_sell_in(sell_in_step) {adjust_quality(quality_step)}
   end
 
   private
@@ -30,8 +29,8 @@ class Updateable
     @item.quality = 0
   end
 
-  def decrement_sell_in(&block)
-    @item.sell_in -= 1
+  def adjust_sell_in(step, &block)
+    @item.sell_in += step
     block.call if expired?
   end
 
@@ -40,7 +39,7 @@ class Updateable
   end
 
   def clamp_quality(x)
-    @item.quality = [[x, MAX_QUALITY].min, MIN_QUALITY].max
+    @item.quality = [[x, @max_quality].min, @min_quality].max
   end
 end
 
@@ -52,7 +51,8 @@ end
 
 class Legendary < Updateable
   def update
-    #noop
+    @max_quality = 80
+    super(0,0)
   end
 end
 
@@ -72,7 +72,7 @@ class BackstagePass < Updateable
     else
       adjust_quality(1)
     end
-    decrement_sell_in {zero_quality}
+    adjust_sell_in(-1) {zero_quality}
   end
 end
 
